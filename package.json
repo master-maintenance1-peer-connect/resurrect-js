@@ -1,10 +1,9 @@
 {
   "name": "resurrect-js-one.com",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "ResurrectJS preserves object behavior (prototypes) and reference circularity with a special JSON encoding. Unlike flat JSON, it can also properly resurrect these types of values:",
   "main": "resurrect.js",
-  "scripts": {
-  },
+  "scripts": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/One-com-webdev/resurrect-js.git"
