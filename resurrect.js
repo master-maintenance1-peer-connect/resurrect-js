@@ -505,9 +505,9 @@ Resurrect.prototype.fixPrototype = function(object) {
  * @returns {*} The decoded object or value.
  * @method
  */
-Resurrect.prototype.resurrect = function(string) {
+Resurrect.prototype.resurrect = function(input) {
     var result = null;
-    var data = JSON.parse(string);
+    var data = typeof input === 'string' ? JSON.parse(input) : input;
     if (Resurrect.isArray(data)) {
         this.table = data;
         /* Restore __proto__. */
