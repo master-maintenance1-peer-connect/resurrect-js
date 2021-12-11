@@ -50,26 +50,26 @@ Options are provided to the constructor as an object with these
 properties:
 
  * *prefix* (`"#"`): A prefix string used for temporary properties added
-     to objects during serialization and deserialization. It is
-     important that you don't use any properties beginning with this
-     string. This option must be consistent between both serialization
-     and deserialization.
+    to objects during serialization and deserialization. It is
+    important that you don't use any properties beginning with this
+    string. This option must be consistent between both serialization
+    and deserialization.
 
  * *cleanup* (`false`): Perform full property cleanup after both
-     serialization and deserialization using the `delete` operator.
-     This may cause performance penalties (i.e. breaking hidden
-     classes in V8) on objects that ResurrectJS touches, so enable
-     with care.
+    serialization and deserialization using the `delete` operator.
+    This may cause performance penalties (i.e. breaking hidden
+    classes in V8) on objects that ResurrectJS touches, so enable
+    with care.
 
  * *revive* (`true`): Restore behavior (`__proto__`) to objects that
-     have been resurrected. If this is set to false during
-     serialization, resurrection information will not be encoded. You
-     still get circularity and Date support.
+    have been resurrected. If this is set to false during
+    serialization, resurrection information will not be encoded. You
+    still get circularity and Date support.
 
  * *resolver* (Resurrect.NamespaceResolver): Converts between a name
-     and a prototype. Create a custom resolver if your constructors
-     are not stored in global variables. The resolver has two methods:
-     getName(object) and getPrototype(string).
+    and a prototype. Create a custom resolver if your constructors
+    are not stored in global variables. The resolver has two methods:
+    getName(object) and getPrototype(string).
 
 For example,
 
@@ -85,14 +85,14 @@ var necromancer = new Resurrect({
 Only two methods are significant when using ResurrectJS.
 
  * `.stringify(object[, replacer[, space]])`: Serializes an arbitrary
-     object or value into a string. The `replacer` and `space`
-     arguments are the same as [JSON.stringify][json-mdn], being
-     passed through to this method. Note that the replacer will *not*
-     be called for ResurrectJS's intrusive keys.
+    object or value into a string. The `replacer` and `space`
+    arguments are the same as [JSON.stringify][json-mdn], being
+    passed through to this method. Note that the replacer will *not*
+    be called for ResurrectJS's intrusive keys.
 
  * `.resurrect(string)`: Deserializes an object stored in a string by
-     a previous call to `.stringify()`. Circularity and, optionally,
-     behavior (prototype chain) will be restored.
+    a previous call to `.stringify()`. Circularity and, optionally,
+    behavior (prototype chain) will be restored.
 
 ## Restrictions
 
@@ -105,7 +105,9 @@ unwrapped. This means extra properties added to these objects will not
 be preserved.
 
 Functions cannot ever be serialized. Resurrect will throw an error if
-a function is found when traversing a data structure.
+a function(Native function) is found when traversing a data structure.
+        * if Use serialize(obj, true) to ignore the error
+          for non Native function property 
 
 ### Custom Resolvers
 
@@ -128,6 +130,37 @@ itself has been given a matching name. This is how the resolver will
 find the name of the constructor in the namespace when given the
 constructor. Keep in mind that using this form will bind the variable
 Foo to the surrounding function within the body of Foo.
+
+Additionally a constructor's name finder function can be also added as a 
+parameter for the nameresolver. When serializing an object this function 
+will be call to guess the constructor's name (that will be invoked when
+deserialized). The function takes two parameters:
+* Object the constructor's name will guess from
+* The already guess name
+
+In the following example if the constructor's name is still undefined, it will
+be guessed from the _declaredClass attribute of the __proto__ attribute of the
+object.
+
+~~~javascript
+var namespace = {};
+namespace.Foo = function Foo() {
+    this.bar = true;
+};
+var necromancer = new Resurrect({
+    resolver: new Resurrect.NamespaceResolver(
+    				namespace,
+    				function(object, constructor){
+						if (constructor === '') {
+					    	if (object.__proto__ && object.__proto__.declaredClass) {
+					    		return constructor = object.__proto__.declaredClass;
+					    	}
+					    } else {
+					    	return constructor;
+					    }
+					})
+});
+~~~
 
 ## See Also
 

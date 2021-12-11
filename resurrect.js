@@ -1,86 +1,89 @@
 /* eslint-disable */
 /**
- * # ResurrectJS
- * @version 1.0.3
- * @license Public Domain
- *
- * ResurrectJS preserves object behavior (prototypes) and reference
- * circularity with a special JSON encoding. Unlike regular JSON,
- * Date, RegExp, DOM objects, and `undefined` are also properly
- * preserved.
- *
- * ## Examples
- *
- * function Foo() {}
- * Foo.prototype.greet = function() { return "hello"; };
- *
- * // Behavior is preserved:
- * var necromancer = new Resurrect();
- * var json = necromancer.stringify(new Foo());
- * var foo = necromancer.resurrect(json);
- * foo.greet();  // => "hello"
- *
- * // References to the same object are preserved:
- * json = necromancer.stringify([foo, foo]);
- * var array = necromancer.resurrect(json);
- * array[0] === array[1];  // => true
- * array[1].greet();  // => "hello"
- *
- * // Dates are restored properly
- * json = necromancer.stringify(new Date());
- * var date = necromancer.resurrect(json);
- * Object.prototype.toString.call(date);  // => "[object Date]"
- *
- * ## Options
- *
- * Options are provided to the constructor as an object with these
- * properties:
- *
- *   prefix ('#'): A prefix string used for temporary properties added
- *     to objects during serialization and deserialization. It is
- *     important that you don't use any properties beginning with this
- *     string. This option must be consistent between both
- *     serialization and deserialization.
- *
- *   cleanup (false): Perform full property cleanup after both
- *     serialization and deserialization using the `delete`
- *     operator. This may cause performance penalties (breaking hidden
- *     classes in V8) on objects that ResurrectJS touches, so enable
- *     with care.
- *
- *   revive (true): Restore behavior (__proto__) to objects that have
- *     been resurrected. If this is set to false during serialization,
- *     resurrection information will not be encoded. You still get
- *     circularity and Date support.
- *
- *   resolver (Resurrect.NamespaceResolver(window)): Converts between
- *     a name and a prototype. Create a custom resolver if your
- *     constructors are not stored in global variables. The resolver
- *     has two methods: getName(object) and getPrototype(string).
- *
- * For example,
- *
- * var necromancer = new Resurrect({
- *     prefix: '__#',
- *     cleanup: true
- * });
- *
- * ## Caveats
- *
- *   * With the default resolver, all constructors must be named and
- *   stored in the global variable under that name. This is required
- *   so that the prototypes can be looked up and reconnected at
- *   resurrection time.
- *
- *   * The wrapper objects Boolean, String, and Number will be
- *   unwrapped. This means extra properties added to these objects
- *   will not be preserved.
- *
- *   * Functions cannot ever be serialized. Resurrect will throw an
- *   error if a function is found when traversing a data structure.
- *
- * @see http://nullprogram.com/blog/2013/03/28/
- */
+* # ResurrectJS
+* @version 1.0.4
+* @license Public Domain (SPDX: "UNLICENSE")
+*
+* ResurrectJS preserves object behavior (prototypes) and reference
+* circularity with a special JSON encoding. Unlike regular JSON,
+* Date, RegExp, DOM objects, and `undefined` are also properly
+* preserved.
+* * note: "non native function property" is supported. 
+*
+* ## Examples
+*
+* function Foo() {}
+* Foo.prototype.greet = function() { return "hello"; };
+*
+* // Behavior is preserved:
+* var necromancer = new Resurrect();
+* var json = necromancer.stringify(new Foo());
+* var foo = necromancer.resurrect(json);
+* foo.greet();  // => "hello"
+*
+* // References to the same object are preserved:
+* json = necromancer.stringify([foo, foo]);
+* var array = necromancer.resurrect(json);
+* array[0] === array[1];  // => true
+* array[1].greet();  // => "hello"
+*
+* // Dates are restored properly
+* json = necromancer.stringify(new Date());
+* var date = necromancer.resurrect(json);
+* Object.prototype.toString.call(date);  // => "[object Date]"
+*
+* ## Options
+*
+* Options are provided to the constructor as an object with these
+* properties:
+*
+*    prefix ('#'): A prefix string used for temporary properties added
+*      to objects during serialization and deserialization. It is
+*      important that you don't use any properties beginning with this
+*      string. This option must be consistent between both
+*      serialization and deserialization.
+*
+*    cleanup (false): Perform full property cleanup after both
+*      serialization and deserialization using the `delete`
+*      operator. This may cause performance penalties (breaking hidden
+*      classes in V8) on objects that ResurrectJS touches, so enable
+*      with care.
+*
+*    revive (true): Restore behavior (__proto__) to objects that have
+*      been resurrected. If this is set to false during serialization,
+*      resurrection information will not be encoded. You still get
+*      circularity and Date support.
+*
+*    resolver (Resurrect.NamespaceResolver(window) [, constructorNamer]): 
+*      Converts between a name and a prototype.
+*      Create a custom resolver if your constructors are not stored in global variables.
+*      The resolver has two methods: getName(object) and getPrototype(string).
+*      If no name is found, constructorNamer function if defined is used.
+*
+*
+* For example,
+*
+* var necromancer = new Resurrect({
+*  prefix: '__#',
+*  cleanup: true
+* });
+*
+* ## Caveats
+*
+*   * With the default resolver, all constructors must be named and
+*   stored in the global variable under that name. This is required
+*   so that the prototypes can be looked up and reconnected at
+*   resurrection time.
+*
+*   * The wrapper objects Boolean, String, and Number will be
+*   unwrapped. This means extra properties added to these objects
+*   will not be preserved.
+*
+*   * Functions cannot ever be serialized. Resurrect will throw an
+*   error if a function is found when traversing a data structure.
+*
+* @see http://nullprogram.com/blog/2013/03/28/
+*/
 
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
@@ -92,11 +95,11 @@
     }
 })(this, function () {
     /**
-     * @param {Object} [options] See options documentation.
-     * @namespace
-     * @constructor
-     */
-    function Resurrect(options) {
+    * @param {Object} [options] See options documentation.
+    * @namespace
+    * @constructor
+    */
+function Resurrect(options) {
         this.table = null;
         this.prefix = '#';
         this.cleanup = false;
@@ -113,55 +116,59 @@
     }
 
     /**
-     * Portable access to the global object (window, global).
-     * Uses indirect eval.
-     * @constant
-     */
-    Resurrect.GLOBAL = (0, eval)('this');
+    * Portable access to the global object (window, global).
+    * Uses indirect eval.
+    * @constant
+    */
+Resurrect.GLOBAL = (0, eval)('this');
 
-    Resurrect.ISNATIVEFUNC = /^function\s*[^(]*\(.*\)\s*\{\s*\[native code\]\s*\}$/;
+Resurrect.ISNATIVEFUNC = /^function\s*[^(]*\(.*\)\s*\{\s*\[native code\]\s*\}$/;
 
     /**
-     * Escape special regular expression characters in a string.
-     * @param {string} string
-     * @returns {string} The string escaped for exact matches.
-     * @see http://stackoverflow.com/a/6969486
-     */
-    Resurrect.escapeRegExp = function (string) {
+    * Escape special regular expression characters in a string.
+    * @param {string} string
+    * @returns {string} The string escaped for exact matches.
+    * @see http://stackoverflow.com/a/6969486
+    */
+Resurrect.escapeRegExp = function (string) {
         return string.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
     };
 
     /* Helper Objects */
 
     /**
-     * @param {string} [message]
-     * @constructor
-     */
-    Resurrect.prototype.Error = function ResurrectError(message) {
+    * @param {string} [message]
+    * @constructor
+    */
+Resurrect.prototype.Error = function ResurrectError(message) {
         this.message = message || '';
         this.stack = new Error().stack;
     };
-    Resurrect.prototype.Error.prototype = Object.create(Error.prototype);
-    Resurrect.prototype.Error.prototype.name = 'ResurrectError';
+Resurrect.prototype.Error.prototype = Object.create(Error.prototype);
+Resurrect.prototype.Error.prototype.name = 'ResurrectError';
 
     /**
-     * Resolves prototypes through the properties on an object and
-     * constructor names.
-     * @param {Object} scope
-     * @constructor
-     */
-    Resurrect.NamespaceResolver = function(scope) {
+    * Resolves prototypes through the properties on an object and
+    * constructor names.
+    * @param {Object} scope
+    * @param {function} function that guess the constructor name. Takes
+    * 				two parameter, the object and the already default calculated
+    *  				name
+    * @constructor
+    */
+Resurrect.NamespaceResolver = function (scope, constructorNamer) {
         this.scope = scope;
+        this.constructorNamer = constructorNamer;
     };
 
     /**
-     * Gets the prototype of the given property name from an object. If
-     * not found, it throws an error.
-     * @param {string} name
-     * @returns {Object}
-     * @method
-     */
-    Resurrect.NamespaceResolver.prototype.getPrototype = function(name) {
+    * Gets the prototype of the given property name from an object. If
+    * not found, it throws an error.
+    * @param {string} name
+    * @returns {Object}
+    * @method
+    */
+Resurrect.NamespaceResolver.prototype.getPrototype = function (name) {
         var constructor = this.scope[name];
         if (constructor) {
             return constructor.prototype;
@@ -171,18 +178,21 @@
     };
 
     /**
-     * Get the prototype name for an object, to be fetched later with getPrototype.
-     * @param {Object} object
-     * @returns {?string} Null if the constructor is Object.
-     * @method
-     */
-    Resurrect.NamespaceResolver.prototype.getName = function(object) {
+    * Get the prototype name for an object, to be fetched later with getPrototype.
+    * If no name is found, constructorNamer function if defined is used.
+    * @param {Object} object
+    * @returns {?string} Null if the constructor is Object.
+    * @method
+    */
+Resurrect.NamespaceResolver.prototype.getName = function (object) {
         var constructor = object.constructor.name;
         if (constructor == null) { // IE
             var funcPattern = /^\s*function\s*([A-Za-z0-9_$]*)/;
             constructor = funcPattern.exec(object.constructor)[1];
         }
-
+        if (this.constructorNamer) {
+            constructor = this.constructorNamer(object, constructor);
+        }
         if (constructor === '') {
             var msg = "Can't serialize objects with anonymous constructors.";
             throw new Resurrect.prototype.Error(msg);
@@ -194,15 +204,15 @@
     };
 
     /* Set the default resolver searches the global object. */
-    Resurrect.prototype.resolver =
+Resurrect.prototype.resolver =
         new Resurrect.NamespaceResolver(Resurrect.GLOBAL);
 
     /**
-     * Create a DOM node from HTML source; behaves like a constructor.
-     * @param {string} html
-     * @constructor
-     */
-    Resurrect.Node = function(html) {
+    * Create a DOM node from HTML source; behaves like a constructor.
+    * @param {string} html
+    * @constructor
+    */
+Resurrect.Node = function (html) {
         var div = document.createElement('div');
         div.innerHTML = html;
         return div.firstChild;
@@ -211,49 +221,49 @@
     /* Type Tests */
 
     /**
-     * @param {string} type
-     * @returns {Function} A function that tests for type.
-     */
-    Resurrect.is = function(type) {
+    * @param {string} type
+    * @returns {Function} A function that tests for type.
+    */
+Resurrect.is = function (type) {
         var string = '[object ' + type + ']';
-        return function(object) {
+        return function (object) {
             return Object.prototype.toString.call(object) === string;
         };
     };
 
-    Resurrect.isArray = Resurrect.is('Array');
-    Resurrect.isString = Resurrect.is('String');
-    Resurrect.isBoolean = Resurrect.is('Boolean');
-    Resurrect.isNumber = Resurrect.is('Number');
-    Resurrect.isFunction = Resurrect.is('Function');
-    Resurrect.isDate = Resurrect.is('Date');
-    Resurrect.isRegExp = Resurrect.is('RegExp');
-    Resurrect.isObject = Resurrect.is('Object');
+Resurrect.isArray = Resurrect.is('Array');
+Resurrect.isString = Resurrect.is('String');
+Resurrect.isBoolean = Resurrect.is('Boolean');
+Resurrect.isNumber = Resurrect.is('Number');
+Resurrect.isFunction = Resurrect.is('Function');
+Resurrect.isDate = Resurrect.is('Date');
+Resurrect.isRegExp = Resurrect.is('RegExp');
+Resurrect.isObject = Resurrect.is('Object');
 
-    Resurrect.isAtom = function(object) {
+Resurrect.isAtom = function (object) {
         return !Resurrect.isObject(object) && !Resurrect.isArray(object);
     };
 
     /**
-     * @param {*} object
-     * @returns {boolean} True if object is a primitive or a primitive wrapper.
-     */
-    Resurrect.isPrimitive = function(object) {
+    * @param {*} object
+    * @returns {boolean} True if object is a primitive or a primitive wrapper.
+    */
+Resurrect.isPrimitive = function (object) {
         return object == null ||
-            Resurrect.isNumber(object) ||
-            Resurrect.isString(object) ||
-            Resurrect.isBoolean(object);
+Resurrect.isNumber(object) ||
+Resurrect.isString(object) ||
+Resurrect.isBoolean(object);
     };
 
     /* Methods */
 
     /**
-     * Create a reference (encoding) to an object.
-     * @param {(Object|undefined)} object
-     * @returns {Object}
-     * @method
-     */
-    Resurrect.prototype.ref = function(object) {
+    * Create a reference (encoding) to an object.
+    * @param {(Object|undefined)} object
+    * @returns {Object}
+    * @method
+    */
+Resurrect.prototype.ref = function (object) {
         var ref = {};
         if (object === undefined) {
             ref[this.prefix] = -1;
@@ -264,22 +274,22 @@
     };
 
     /**
-     * Lookup an object in the table by reference object.
-     * @param {Object} ref
-     * @returns {(Object|undefined)}
-     * @method
-     */
-    Resurrect.prototype.deref = function(ref) {
+    * Lookup an object in the table by reference object.
+    * @param {Object} ref
+    * @returns {(Object|undefined)}
+    * @method
+    */
+Resurrect.prototype.deref = function (ref) {
         return this.table[ref[this.prefix]];
     };
 
     /**
-     * Put a temporary identifier on an object and store it in the table.
-     * @param {Object} object
-     * @returns {number} The unique identifier number.
-     * @method
-     */
-    Resurrect.prototype.tag = function(object) {
+    * Put a temporary identifier on an object and store it in the table.
+    * @param {Object} object
+    * @returns {number} The unique identifier number.
+    * @method
+    */
+Resurrect.prototype.tag = function (object) {
         if (this.revive) {
             var constructor = this.resolver.getName(object);
             if (constructor) {
@@ -297,13 +307,13 @@
     };
 
     /**
-     * Create a builder object (encoding) for serialization.
-     * @param {string} name The name of the constructor.
-     * @param value The value to pass to the constructor.
-     * @returns {Object}
-     * @method
-     */
-    Resurrect.prototype.builder = function(name, value) {
+    * Create a builder object (encoding) for serialization.
+    * @param {string} name The name of the constructor.
+    * @param value The value to pass to the constructor.
+    * @returns {Object}
+    * @method
+    */
+Resurrect.prototype.builder = function (name, value) {
         var builder = {};
         builder[this.buildcode] = name;
         builder[this.valuecode] = value;
@@ -311,15 +321,15 @@
     };
 
     /**
-     * Build a value from a deserialized builder.
-     * @param {Object} ref
-     * @returns {Object}
-     * @method
-     * @see http://stackoverflow.com/a/14378462
-     * @see http://nullprogram.com/blog/2013/03/24/
-     */
-    Resurrect.prototype.build = function(ref) {
-        var type = ref[this.buildcode].split(/\./).reduce(function(object, name) {
+    * Build a value from a deserialized builder.
+    * @param {Object} ref
+    * @returns {Object}
+    * @method
+    * @see http://stackoverflow.com/a/14378462
+    * @see http://nullprogram.com/blog/2013/03/24/
+    */
+Resurrect.prototype.build = function (ref) {
+        var type = ref[this.buildcode].split(/\./).reduce(function (object, name) {
             return object[name];
         }, Resurrect.GLOBAL);
         var valuecode = ref[this.valuecode];
@@ -338,12 +348,12 @@
     };
 
     /**
-     * Dereference or build an object or value from an encoding.
-     * @param {Object} ref
-     * @returns {(Object|undefined)}
-     * @method
-     */
-    Resurrect.prototype.decode = function(ref) {
+    * Dereference or build an object or value from an encoding.
+    * @param {Object} ref
+    * @returns {(Object|undefined)}
+    * @method
+    */
+Resurrect.prototype.decode = function (ref) {
         if (this.prefix in ref) {
             return this.deref(ref);
         } else if (this.buildcode in ref) {
@@ -354,23 +364,23 @@
     };
 
     /**
-     * @param {Object} object
-     * @returns {boolean} True if the provided object is tagged for serialization.
-     * @method
-     */
-    Resurrect.prototype.isTagged = function(object) {
+    * @param {Object} object
+    * @returns {boolean} True if the provided object is tagged for serialization.
+    * @method
+    */
+Resurrect.prototype.isTagged = function (object) {
         return (this.refcode in object) && (object[this.refcode] != null);
     };
 
     /**
-     * Visit root and all its ancestors, visiting atoms with f.
-     * @param {*} root
-     * @param {Function} f
-     * @param {Function} replacer
-     * @returns {*} A fresh copy of root to be serialized.
-     * @method
-     */
-    Resurrect.prototype.visit = function(root, f, replacer) {
+    * Visit root and all its ancestors, visiting atoms with f.
+    * @param {*} root
+    * @param {Function} f
+    * @param {Function} replacer
+    * @returns {*} A fresh copy of root to be serialized.
+    * @method
+    */
+Resurrect.prototype.visit = function (root, f, replacer) {
         if (Resurrect.isAtom(root)) {
             return f(root);
         } else if (!this.isTagged(root)) {
@@ -406,14 +416,14 @@
     };
 
     /**
-     * Manage special atom values, possibly returning an encoding.
-     * @param {*} atom
-     * @returns {*}
-     * @method
-     */
-    Resurrect.prototype.handleAtom = function(atom) {
+    * Manage special atom values, possibly returning an encoding.
+    * @param {*} atom
+    * @returns {*}
+    * @method
+    */
+Resurrect.prototype.handleAtom = function (atom) {
         var Node = Resurrect.GLOBAL.Node || function () {
-            };
+        };
         if (Resurrect.isFunction(atom)) {
             //throw new this.Error("Can't serialize functions.")
             var funcStr = atom.toString();
@@ -439,14 +449,14 @@
     };
 
     /**
-     * Hides intrusive keys from a user-supplied replacer.
-     * @param {Function} replacer function of two arguments (key, value)
-     * @returns {Function} A function that skips the replacer for intrusive keys.
-     * @method
-     */
-    Resurrect.prototype.replacerWrapper = function(replacer) {
+    * Hides intrusive keys from a user-supplied replacer.
+    * @param {Function} replacer function of two arguments (key, value)
+    * @returns {Function} A function that skips the replacer for intrusive keys.
+    * @method
+    */
+Resurrect.prototype.replacerWrapper = function (replacer) {
         var skip = new RegExp('^' + Resurrect.escapeRegExp(this.prefix));
-        return function(k, v) {
+        return function (k, v) {
             if (skip.test(k)) {
                 return v;
             } else {
@@ -456,18 +466,18 @@
     };
 
     /**
-     * Serialize an arbitrary JavaScript object, carefully preserving it.
-     * @param {*} object
-     * @param {(Function|Array)} replacer
-     * @param {string} space
-     * @method
-     */
-    Resurrect.prototype.stringify = function(object, replacer, space) {
+    * Serialize an arbitrary JavaScript object, carefully preserving it.
+    * @param {*} object
+    * @param {(Function|Array)} replacer
+    * @param {string} space
+    * @method
+    */
+Resurrect.prototype.stringify = function (object, replacer, space) {
         if (Resurrect.isFunction(replacer)) {
             replacer = this.replacerWrapper(replacer);
         } else if (Resurrect.isArray(replacer)) {
             var acceptKeys = replacer;
-            replacer = function(k, v) {
+            replacer = function (k, v) {
                 return acceptKeys.indexOf(k) >= 0 ? v : undefined;
             };
         }
@@ -492,12 +502,12 @@
     };
 
     /**
-     * Restore the __proto__ of the given object to the proper value.
-     * @param {Object} object
-     * @returns {Object} Its argument, or a copy, with the prototype restored.
-     * @method
-     */
-    Resurrect.prototype.fixPrototype = function(object) {
+    * Restore the __proto__ of the given object to the proper value.
+    * @param {Object} object
+    * @returns {Object} Its argument, or a copy, with the prototype restored.
+    * @method
+    */
+Resurrect.prototype.fixPrototype = function (object) {
         if (this.prefix in object) {
             var name = object[this.prefix];
             var prototype = this.resolver.getPrototype(name);
@@ -522,14 +532,14 @@
     };
 
     /**
-     * Deserialize an encoded object, restoring circularity and behavior.
-     * @param {string} string
-     * @returns {*} The decoded object or value.
-     * @method
-     */
-    Resurrect.prototype.resurrect = function(input) {
+    * Deserialize an encoded object, restoring circularity and behavior.
+    * @param {string} string
+    * @returns {*} The decoded object or value.
+    * @method
+    */
+Resurrect.prototype.resurrect = function (input) {
         var result = null;
-        var data = typeof input === 'string'? JSON.parse(input): input;
+        var data = typeof input === 'string' ? JSON.parse(input) : input;
         if (Resurrect.isArray(data)) {
             this.table = data;
             /* Restore __proto__. */
@@ -539,7 +549,7 @@
                 }
             }
             /* Re-establish object references and construct atoms. */
-            for (i = 0; i < this.table.length; i++) {
+            for (var i = 0; i < this.table.length; i++) {
                 var object = this.table[i];
                 for (var key in object) {
                     if (object.hasOwnProperty(key)) {
